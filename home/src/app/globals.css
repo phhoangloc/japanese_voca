@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: #ffece0;
+  color: oklch(0.22 0.03 50);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: oklch(0.85 0.08 50);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3
+      text-sm font-bold transition-colors focus:outline-none
+      focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2
+      disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn text-[oklch(0.97_0.006_80)];
+    background: oklch(0.3 0.02 60);
+  }
+  .btn-primary:hover {
+    background: oklch(0.24 0.02 60);
+  }
+  .btn-outline {
+    @apply btn border-[1.5px] text-ink;
+    border-color: rgba(0, 0, 0, 0.2);
+    background: transparent;
+  }
+  .btn-outline:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .btn-pill {
+    @apply inline-flex items-center rounded-full px-[18px] py-[9px] text-[13px]
+      font-semibold transition-colors;
+  }
+
+  .pill {
+    @apply inline-block rounded-full px-3 py-[5px] text-[11px] font-semibold
+      uppercase tracking-[0.1em];
+  }
+
+  .input {
+    @apply w-full rounded-full border border-line bg-[oklch(0.97_0.01_60)]
+      px-4 py-[9px] text-[13px] font-medium text-ink
+      placeholder:text-ink-faint focus:border-accent focus:outline-none;
+  }
+
+  .field-input {
+    @apply w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm
+      text-ink focus:border-accent focus:outline-none;
+  }
+
+  .card-lift {
+    @apply transition-transform duration-200 ease-out hover:-translate-y-1.5;
+  }
+}

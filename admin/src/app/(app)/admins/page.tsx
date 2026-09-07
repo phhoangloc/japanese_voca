@@ -1,87 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Column, DataTable } from "@/components/DataTable";
-import { Field } from "@/components/Field";
-import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
 import { matchesQuery, useSearch } from "@/components/SearchContext";
 import { useToast } from "@/components/Toast";
 import { useResource } from "@/hooks/useResource";
 import { ApiError } from "@/lib/api";
 import { formatDate } from "@/lib/format";
-import type { Admin, FieldErrors } from "@/lib/types";
-import { validateAdmin } from "@/lib/validation";
-
-type Draft = { username: string; email: string; password: string };
-const EMPTY: Draft = { username: "", email: "", password: "" };
+import type { Admin } from "@/lib/types";
 
 export default function AdminsPage() {
-  const { items, loading, error, create, update, remove } =
-    useResource<Admin>("admins");
+  const { items, loading, error, remove } = useResource<Admin>("admins");
   const toast = useToast();
   const { query } = useSearch();
 
-  const [editing, setEditing] = useState<Admin | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<Admin | null>(null);
-
-  const isEdit = editing !== null;
-
-  const openCreate = () => {
-    setEditing(null);
-    setDraft(EMPTY);
-    setErrors({});
-    setFormOpen(true);
-  };
-
-  const openEdit = (a: Admin) => {
-    setEditing(a);
-    setDraft({ username: a.username, email: a.email, password: "" });
-    setErrors({});
-    setFormOpen(true);
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const clientErrors = validateAdmin(draft, isEdit);
-    setErrors(clientErrors);
-    if (Object.keys(clientErrors).length > 0) return;
-
-    setSaving(true);
-    try {
-      if (isEdit && editing) {
-        const body: Record<string, unknown> = {
-          username: draft.username.trim(),
-          email: draft.email.trim(),
-        };
-        if (draft.password) body.password = draft.password;
-        await update(editing.id, body);
-        toast.success("Admin updated");
-      } else {
-        await create({
-          username: draft.username.trim(),
-          email: draft.email.trim(),
-          password: draft.password,
-        });
-        toast.success("Admin created");
-      }
-      setFormOpen(false);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.details) setErrors(err.details);
-        else toast.error(err.message);
-      } else {
-        toast.error("Something went wrong");
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const confirmDelete = async () => {
     if (!toDelete) return;
@@ -119,9 +55,9 @@ export default function AdminsPage() {
         title="Admins"
         description="Administrators who can sign in and manage the system."
         action={
-          <button className="btn-primary" onClick={openCreate}>
+          <Link href="/admins/new" className="btn-primary">
             + New admin
-          </button>
+          </Link>
         }
       />
 
@@ -139,9 +75,9 @@ export default function AdminsPage() {
         emptyMessage={query ? "No admins match your search." : "No admins yet."}
         actions={(a) => (
           <>
-            <button className="btn-row" onClick={() => openEdit(a)}>
+            <Link href={`/admins/${a.id}/edit`} className="btn-row">
               Edit
-            </button>
+            </Link>
             <button
               className="btn-row text-red-600 hover:bg-red-50"
               onClick={() => setToDelete(a)}
@@ -151,54 +87,6 @@ export default function AdminsPage() {
           </>
         )}
       />
-
-      <Modal
-        open={formOpen}
-        title={isEdit ? "Edit admin" : "New admin"}
-        onClose={() => setFormOpen(false)}
-        footer={
-          <>
-            <button
-              className="btn-secondary"
-              onClick={() => setFormOpen(false)}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              form="admin-form"
-              type="submit"
-              disabled={saving}
-            >
-              {saving ? "Saving…" : isEdit ? "Save changes" : "Create"}
-            </button>
-          </>
-        }
-      >
-        <form id="admin-form" onSubmit={submit} className="space-y-4">
-          <Field
-            label="Username"
-            value={draft.username}
-            error={errors.username}
-            onChange={(e) => setDraft({ ...draft, username: e.target.value })}
-          />
-          <Field
-            label="Email"
-            type="email"
-            value={draft.email}
-            error={errors.email}
-            onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-          />
-          <Field
-            label={isEdit ? "Password (leave blank to keep current)" : "Password"}
-            type="password"
-            value={draft.password}
-            error={errors.password}
-            onChange={(e) => setDraft({ ...draft, password: e.target.value })}
-          />
-        </form>
-      </Modal>
 
       <ConfirmDialog
         open={toDelete !== null}

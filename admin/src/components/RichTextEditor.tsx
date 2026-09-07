@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { fileToDownscaledDataUrl, isImage } from "@/lib/image";
+import { ApiError } from "@/lib/api";
+import { api } from "@/lib/client";
+import { resolveFileUrl } from "@/lib/files";
+import { isImage } from "@/lib/image";
+import type { FileRecord } from "@/lib/types";
+import { useToast } from "@/components/Toast";
 
 interface RichTextEditorProps {
   value: string;
@@ -27,8 +32,8 @@ const COMMANDS: Cmd[] = [
 
 /**
  * FR-8: lightweight rich text editor over contentEditable + execCommand.
- * Produces an HTML string. Uploaded images are downscaled and inserted at the
- * caret.
+ * Produces an HTML string. An uploaded image is POSTed to `/api/files` and the
+ * returned URL is inserted at the caret.
  */
 export function RichTextEditor({
   value,
@@ -39,6 +44,7 @@ export function RichTextEditor({
   const fileRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   // Seed the editable once (and when an external value replaces it, e.g. opening
   // a different record). Avoid overwriting while the user is typing.
@@ -109,11 +115,17 @@ export function RichTextEditor({
 
   const addImageUpload = async (file: File | undefined) => {
     if (!file) return;
-    if (!isImage(file)) return;
+    if (!isImage(file)) {
+      toast.error("Please choose an image file.");
+      return;
+    }
     setBusy(true);
     try {
-      const dataUrl = await fileToDownscaledDataUrl(file);
-      run(() => document.execCommand("insertImage", false, dataUrl));
+      const rec = await api.upload<FileRecord>("files", file, { name: file.name });
+      const url = resolveFileUrl(rec.detail);
+      if (url) run(() => document.execCommand("insertImage", false, url));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Image upload failed");
     } finally {
       setBusy(false);
     }

@@ -42,6 +42,20 @@ export class Validator {
     return num;
   }
 
+  /** Required non-negative integer. */
+  requireNonNegativeInt(field: string, value: unknown): number {
+    if (value === undefined || value === null || value === '') {
+      this.errors[field] = `${field} is required`;
+      return 0;
+    }
+    const num = Number(value);
+    if (!Number.isInteger(num) || num < 0) {
+      this.errors[field] = `${field} must be an integer >= 0`;
+      return 0;
+    }
+    return num;
+  }
+
   /** Positive integer id; returns undefined when absent (unless `required`). */
   id(field: string, value: unknown, required: boolean): number | undefined {
     if (value === undefined || value === null) {

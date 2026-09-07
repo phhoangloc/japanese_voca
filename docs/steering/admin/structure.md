@@ -28,42 +28,53 @@ admin/
       (app)/
         layout.tsx             auth guard + Sidebar + Topbar shell
         dashboard/page.tsx
-        admins/page.tsx
-        customers/page.tsx
-        files/page.tsx
+        admins/page.tsx              list (table + delete)
+        admins/new/page.tsx         -> <AdminForm />
+        admins/[id]/edit/page.tsx   -> <AdminForm adminId=… />
+        customers/page.tsx          list (table + delete)
+        customers/new/page.tsx      -> <CustomerForm />
+        customers/[id]/edit/page.tsx-> <CustomerForm customerId=… />
+        files/page.tsx              upload gallery (no form)
     components/
       Sidebar.tsx
       Topbar.tsx
       DataTable.tsx            generic table: columns + rows + row actions
-      Modal.tsx                accessible dialog (focus trap, Esc, backdrop)
+      Modal.tsx                accessible dialog (used by ConfirmDialog)
       ConfirmDialog.tsx        delete confirmation
       Field.tsx               label + input + error text
-      ImageDropzone.tsx        FR-7 image upload box
-      RichTextEditor.tsx       FR-8 rich text editor
+      AdminForm.tsx            create/edit admin (routed page body)
+      CustomerForm.tsx         create/edit customer (routed page body)
+      ImageDropzone.tsx        FR-7 image upload box (emits a File)
+      RichTextEditor.tsx       FR-8 rich text editor (currently unmounted)
       Toast.tsx               ToastProvider + useToast
       Spinner.tsx
     lib/
       types.ts                Admin, Customer, FileRecord + Create/Update inputs
-      api.ts                  ApiClient: baseUrl, bearer, JSON, ApiError, 401 hook
+      api.ts                  ApiClient: baseUrl, bearer, JSON + multipart, ApiError, 401 hook
       auth.ts                 token storage + useAuth() + parsed JWT username
-      image.ts                fileToDownscaledDataUrl(), isImage()
+      image.ts                isImage()
+      files.ts                resolveFileUrl(), isImageDetail()
       validation.ts           client pre-submit checks (mirror backend rules)
       format.ts               date + text-preview helpers
     hooks/
-      useResource.ts          list/create/update/remove for one endpoint
+      useResource.ts          list + delete for one endpoint (list pages)
   src/lib/__tests__/          vitest specs for lib/*
 ```
 
 ## 3. Layering (mirrors the backend's spirit)
 
 ```
-page (app/**)             screen state, opens modals, calls hooks
-  -> hooks/useResource     orchestrates a resource: load, mutate, re-load
-    -> lib/api (ApiClient) one place that does fetch + auth + error mapping
-      -> backend REST API
-components/**               presentational + interaction only, no direct fetch
-lib/** (pure)              types, api, auth, image, validation, format — unit tested
+list page (app/**/page)   table + delete; "New"/"Edit" are <Link>s to routes
+form page (new, [id]/edit) thin wrapper -> AdminForm / CustomerForm
+  -> hooks/useResource     list pages: load + delete
+  -> lib/api (ApiClient)   forms: get one, create, update, upload
+    -> backend REST API
+components/**               presentational + interaction; AdminForm/CustomerForm
+                            own their own submit + redirect (routed pages)
+lib/** (pure)              types, api, auth, image, files, validation, format
 ```
+
+- After a create/edit the form does `router.push(list)` + `router.refresh()`.
 
 - Only `lib/api.ts` calls `fetch`. Hooks and pages never touch `fetch` directly.
 - Components receive data and callbacks via props; they do not import hooks that
@@ -80,15 +91,17 @@ lib/** (pure)              types, api, auth, image, validation, format — unit 
 
 ## 5. Image / file handling
 
-- `ImageDropzone` and `RichTextEditor`'s upload button both call
-  `image.fileToDownscaledDataUrl(file)` (canvas resize, max edge 512, JPEG/PNG
-  passthrough) -> `data:` URL string.
-- Customer avatar: the customer form calls `POST /api/files`
-  `{ name: <filename>, detail: <dataUrl> }`, takes the returned `id`, and submits
-  it as `avatarId`. Table thumbnails resolve `avatarId` against the files list
-  already loaded on the customers page.
-- Rich text inline images: the `data:` URL is inserted straight into the editor
-  HTML; no file record is created.
+- Uploads are multipart `POST /api/files` (field `file`). The backend writes the
+  binary to `/public/upload` and returns a row whose `detail` is the URL path.
+- `lib/files.ts`: `resolveFileUrl(detail)` prefixes `/upload/...` with the API
+  host for `<img src>`; `isImageDetail(detail)` gates the image vs. name view.
+- `ImageDropzone` emits the chosen `File`; `CustomerForm.resolveAvatarId()`
+  uploads it via `api.upload("files", file)` and submits the returned `id` as
+  `avatarId`. Table thumbnails resolve `avatarId` against the loaded files list.
+- `RichTextEditor`'s upload button `api.upload`s the file and inserts an `<img>`
+  with `resolveFileUrl(rec.detail)`.
+- Files page: "New file" uploads immediately; the strip renders each row via
+  `resolveFileUrl`.
 
 ## 6. Naming / conventions
 

@@ -3,3 +3,7 @@ dist/
 .env
 *.log
 coverage/
+
+# Uploaded files are runtime data, not source.
+public/upload/*
+!public/upload/.gitkeep

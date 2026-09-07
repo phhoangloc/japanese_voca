@@ -1,82 +1,46 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Column, DataTable } from "@/components/DataTable";
-import { Field } from "@/components/Field";
-import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
-import { RichTextEditor } from "@/components/RichTextEditor";
 import { matchesQuery, useSearch } from "@/components/SearchContext";
 import { useToast } from "@/components/Toast";
 import { useResource } from "@/hooks/useResource";
 import { ApiError } from "@/lib/api";
-import { formatDate, htmlToPreview } from "@/lib/format";
-import type { FieldErrors, FileRecord } from "@/lib/types";
-import { validateFile } from "@/lib/validation";
-
-type Draft = { name: string; detail: string };
-const EMPTY: Draft = { name: "", detail: "" };
+import { api } from "@/lib/client";
+import { isImageDetail, resolveFileUrl } from "@/lib/files";
+import { formatDate } from "@/lib/format";
+import type { FileRecord } from "@/lib/types";
 
 export default function FilesPage() {
-  const { items, loading, error, create, update, remove } =
+  const { items, loading, error, reload, remove } =
     useResource<FileRecord>("files");
   const toast = useToast();
   const { query } = useSearch();
 
-  const [editing, setEditing] = useState<FileRecord | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [toDelete, setToDelete] = useState<FileRecord | null>(null);
-  const [preview, setPreview] = useState<FileRecord | null>(null);
 
-  const isEdit = editing !== null;
+  const handleFiles = async (fileList: FileList | null) => {
+    const files = fileList ? Array.from(fileList) : [];
+    if (files.length === 0) return;
 
-  const openCreate = () => {
-    setEditing(null);
-    setDraft(EMPTY);
-    setErrors({});
-    setFormOpen(true);
-  };
-
-  const openEdit = (f: FileRecord) => {
-    setEditing(f);
-    setDraft({ name: f.name, detail: f.detail ?? "" });
-    setErrors({});
-    setFormOpen(true);
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const clientErrors = validateFile(draft);
-    setErrors(clientErrors);
-    if (Object.keys(clientErrors).length > 0) return;
-
-    setSaving(true);
+    setUploading(true);
     try {
-      const body = {
-        name: draft.name.trim(),
-        detail: draft.detail.trim() === "" ? null : draft.detail,
-      };
-      if (isEdit && editing) {
-        await update(editing.id, body);
-        toast.success("File updated");
-      } else {
-        await create(body);
-        toast.success("File created");
+      let done = 0;
+      for (const file of files) {
+        await api.upload<FileRecord>("files", file, { name: file.name });
+        done += 1;
       }
-      setFormOpen(false);
+      await reload();
+      if (done > 0) {
+        toast.success(done === 1 ? "File uploaded" : `${done} files uploaded`);
+      }
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.details) setErrors(err.details);
-        else toast.error(err.message);
-      } else {
-        toast.error("Something went wrong");
-      }
+      toast.error(err instanceof ApiError ? err.message : "Upload failed");
     } finally {
-      setSaving(false);
+      setUploading(false);
     }
   };
 
@@ -92,42 +56,33 @@ export default function FilesPage() {
     }
   };
 
-  const columns = useMemo<Column<FileRecord>[]>(
-    () => [
-      { key: "id", header: "ID", render: (f) => f.id, className: "w-16" },
-      { key: "name", header: "Name", render: (f) => f.name },
-      {
-        key: "detail",
-        header: "Detail",
-        render: (f) => (
-          <span className="text-ink-soft">
-            {htmlToPreview(f.detail) || "—"}
-          </span>
-        ),
-      },
-      {
-        key: "createdAt",
-        header: "Created",
-        render: (f) => formatDate(f.createdAt),
-      },
-    ],
-    [],
-  );
-
-  const rows = items.filter((f) =>
-    matchesQuery(query, f.id, f.name, htmlToPreview(f.detail, 400)),
-  );
+  const rows = items.filter((f) => matchesQuery(query, f.id, f.name));
 
   return (
     <div className="flex flex-col gap-3.5">
       <PageHeader
         title="Files"
-        description="File records. The detail field is authored with the rich text editor."
+        description="Uploaded files, stored on the server under /public/upload. Images preview below; other files show their name."
         action={
-          <button className="btn-primary" onClick={openCreate}>
-            + New file
+          <button
+            className="btn-primary"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? "Uploading…" : "+ New file"}
           </button>
         }
+      />
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          void handleFiles(e.target.files);
+          e.target.value = "";
+        }}
       />
 
       {error && (
@@ -136,86 +91,56 @@ export default function FilesPage() {
         </p>
       )}
 
-      <DataTable
-        columns={columns}
-        rows={rows}
-        rowKey={(f) => f.id}
-        loading={loading}
-        emptyMessage={query ? "No files match your search." : "No files yet."}
-        actions={(f) => (
-          <>
-            <button className="btn-row" onClick={() => setPreview(f)}>
-              View
-            </button>
-            <button className="btn-row" onClick={() => openEdit(f)}>
-              Edit
-            </button>
-            <button
-              className="btn-row text-red-600 hover:bg-red-50"
-              onClick={() => setToDelete(f)}
-            >
-              Delete
-            </button>
-          </>
-        )}
-      />
-
-      <Modal
-        open={formOpen}
-        title={isEdit ? "Edit file" : "New file"}
-        onClose={() => setFormOpen(false)}
-        wide
-        footer={
-          <>
-            <button
-              className="btn-secondary"
-              onClick={() => setFormOpen(false)}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              form="file-form"
-              type="submit"
-              disabled={saving}
-            >
-              {saving ? "Saving…" : isEdit ? "Save changes" : "Create"}
-            </button>
-          </>
-        }
-      >
-        <form id="file-form" onSubmit={submit} className="space-y-4">
-          <Field
-            label="Name"
-            value={draft.name}
-            error={errors.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          />
-          <div>
-            <span className="label">Detail</span>
-            <RichTextEditor
-              value={draft.detail}
-              onChange={(html) => setDraft({ ...draft, detail: html })}
-            />
-            {errors.detail && (
-              <p className="mt-1 text-xs text-red-600">{errors.detail}</p>
-            )}
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
-        open={preview !== null}
-        title={preview?.name ?? "File"}
-        onClose={() => setPreview(null)}
-        wide
-      >
-        <div
-          className="rte-content max-w-none text-sm text-ink"
-          dangerouslySetInnerHTML={{ __html: preview?.detail ?? "<p>—</p>" }}
-        />
-      </Modal>
+      {loading ? (
+        <p className="text-sm text-ink-soft">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-line bg-paper px-4 py-8 text-center text-sm text-ink-soft">
+          {query
+            ? "No files match your search."
+            : "No files yet. Use “New file” to upload one."}
+        </p>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-3">
+          {rows.map((f) => {
+            const src = resolveFileUrl(f.detail);
+            return (
+              <figure
+                key={f.id}
+                className="group flex w-40 shrink-0 flex-col gap-2"
+              >
+                <div className="relative h-40 w-40 overflow-hidden rounded-xl border border-line bg-white">
+                  {src && isImageDetail(f.detail) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={src}
+                      alt={f.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs font-semibold text-ink-soft">
+                      {f.name}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setToDelete(f)}
+                    aria-label={`Delete ${f.name}`}
+                    className="absolute right-1.5 top-1.5 rounded-md bg-white/90 px-1.5 py-0.5 text-xs font-semibold text-red-600 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <figcaption
+                  className="truncate text-xs text-ink-soft"
+                  title={`${f.name} · ${formatDate(f.createdAt)}`}
+                >
+                  {f.name}
+                </figcaption>
+              </figure>
+            );
+          })}
+        </div>
+      )}
 
       <ConfirmDialog
         open={toDelete !== null}

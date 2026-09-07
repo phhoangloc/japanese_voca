@@ -35,6 +35,14 @@ Dependencies point downward only. A layer never imports from the layer above it.
 - Repositories import the pool and call `pool.execute(sql, params)`.
 - No transactions required by current scope; add per-service when needed.
 
+### 3.2a File uploads
+- `POST /api/files` takes `multipart/form-data`; `multer` (config in
+  `src/ult/upload.ts`) writes the binary to `backend/public/upload/<uuid><ext>`.
+- The `file` row stores only the URL path (`/upload/<uuid><ext>`) in `detail`.
+- `app.ts` mounts `express.static` at `/upload` to serve them (public, no auth).
+- Deleting a `file` row also unlinks the on-disk file (best-effort).
+- `backend/public/upload/` is git-ignored except for a `.gitkeep`.
+
 ### 3.3 Authentication
 - `POST /api/auth/login` verifies credentials with bcrypt and issues a JWT.
 - `authMiddleware` validates `Authorization: Bearer <token>` on all
@@ -64,6 +72,7 @@ Dependencies point downward only. A layer never imports from the layer above it.
 | mysql2          | MySQL driver (SQL2)        |
 | jsonwebtoken    | JWT sign/verify            |
 | bcrypt          | password hashing           |
+| multer          | `multipart/form-data` parsing for file uploads |
 | dotenv          | load `.env`                |
 | typescript, ts-node-dev, @types/* | build & dev tooling |
 | eslint, prettier (+ @typescript-eslint) | lint & format (see development-guidelines §9) |

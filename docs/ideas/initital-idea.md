@@ -4,6 +4,7 @@
 # Backend project
 - Login feature
 - The admin can create, update, and delete everything.
+- The file is upload to `/public/upload`
 
 ## DATABASE
 ### Tables

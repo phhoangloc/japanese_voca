@@ -67,6 +67,45 @@ export function validateFile(v: FileFormValues): FieldErrors {
   return errors;
 }
 
+export interface WordFormValues {
+  word: string;
+  explain: string;
+}
+
+export function validateWord(v: WordFormValues): FieldErrors {
+  const errors: FieldErrors = {};
+  requireText(errors, "word", v.word);
+  return errors;
+}
+
+export interface CourseFormValues {
+  name: string;
+}
+
+export function validateCourse(v: CourseFormValues): FieldErrors {
+  const errors: FieldErrors = {};
+  requireText(errors, "name", v.name);
+  return errors;
+}
+
+export interface ChapterFormValues {
+  number: string;
+  name: string;
+  courseId: string;
+}
+
+export function validateChapter(v: ChapterFormValues): FieldErrors {
+  const errors: FieldErrors = {};
+  const n = Number(v.number);
+  if (v.number.trim() === "" || !Number.isInteger(n) || n < 0)
+    errors.number = "number must be an integer >= 0";
+  requireText(errors, "name", v.name);
+  const courseId = Number(v.courseId);
+  if (!v.courseId.trim() || !Number.isInteger(courseId) || courseId <= 0)
+    errors.courseId = "courseId is required";
+  return errors;
+}
+
 export function hasErrors(errors: FieldErrors): boolean {
   return Object.keys(errors).length > 0;
 }

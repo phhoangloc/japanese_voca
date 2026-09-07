@@ -68,14 +68,23 @@ export class ApiClient {
     const { method = "GET", body, query, skipAuthHandler } = options;
     const headers: Record<string, string> = { Accept: "application/json" };
 
+    const isForm =
+      typeof FormData !== "undefined" && body instanceof FormData;
+
     const token = this.getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
-    if (body !== undefined) headers["Content-Type"] = "application/json";
+    // Let the browser set the multipart boundary itself for FormData bodies.
+    if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
     const res = await this.fetchImpl(buildUrl(this.baseUrl, path, query), {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        body === undefined
+          ? undefined
+          : isForm
+            ? (body as FormData)
+            : JSON.stringify(body),
     });
 
     if (res.status === 401 && !skipAuthHandler) {
@@ -117,6 +126,20 @@ export class ApiClient {
   }
   create<T>(resource: string, body: unknown): Promise<T> {
     return this.request<T>(`/api/${resource}`, { method: "POST", body });
+  }
+  /** Upload a binary via multipart/form-data (field `file`, plus optional text fields). */
+  upload<T>(
+    resource: string,
+    file: File | Blob,
+    fields?: Record<string, string>,
+  ): Promise<T> {
+    const form = new FormData();
+    const filename = file instanceof File ? file.name : "upload";
+    form.append("file", file, filename);
+    for (const [key, value] of Object.entries(fields ?? {})) {
+      form.append(key, value);
+    }
+    return this.request<T>(`/api/${resource}`, { method: "POST", body: form });
   }
   update<T>(resource: string, id: number, body: unknown): Promise<T> {
     return this.request<T>(`/api/${resource}/${id}`, { method: "PUT", body });

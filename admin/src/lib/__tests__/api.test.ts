@@ -63,6 +63,34 @@ describe("ApiClient", () => {
     );
   });
 
+  it("uploads a File as multipart without a JSON Content-Type", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(res(201, { id: 7 }));
+    const client = new ApiClient({
+      baseUrl: "http://api.test",
+      getToken: () => "tok",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    const file = new File(["hello"], "pic.png", { type: "image/png" });
+    const out = await client.upload<{ id: number }>("files", file, {
+      name: "pic.png",
+    });
+
+    expect(out).toEqual({ id: 7 });
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("http://api.test/api/files");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get("file")).toBeInstanceOf(File);
+    expect((init.body as FormData).get("name")).toBe("pic.png");
+    expect(
+      (init.headers as Record<string, string>)["Content-Type"],
+    ).toBeUndefined();
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      "Bearer tok",
+    );
+  });
+
   it("maps a non-2xx body to ApiError with details", async () => {
     const fetchImpl = vi.fn().mockImplementation(() =>
       Promise.resolve(

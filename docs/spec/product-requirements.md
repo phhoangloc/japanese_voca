@@ -19,8 +19,6 @@ The following are **not** required by the initial idea and are therefore exclude
 until a requirement is added:
 - Customer-facing login or self-service.
 - Points earning / redemption rules or history.
-- File binary upload / download / storage (only the `file` metadata record is
-  described).
 - Roles or permissions beyond a single "admin" actor.
 - Password reset, email verification, refresh tokens, rate limiting.
 - Pagination, search, sorting, soft delete, audit logging.
@@ -40,7 +38,10 @@ until a requirement is added:
 - FR-1.1 An admin can log in with `username` and `password`.
 - FR-1.2 On success the API returns an access token (JWT).
 - FR-1.3 On failure the API returns `401 Unauthorized`.
-- FR-1.4 Every management endpoint (FR-2..FR-4) requires a valid token.
+- FR-1.4 Every **mutating** endpoint (create / update / delete, all resources)
+  requires a valid token. Reading (`GET`) `files`, `courses`, `chapters` and
+  `words` is public — the login-less `home` site (FR-6.6) depends on it;
+  `admins` / `customers` reads still require a token.
 
 ### FR-2 Admin management
 - FR-2.1 Create an admin (`username`, `password`, `email`).
@@ -62,14 +63,51 @@ until a requirement is added:
 - FR-3.7 Passwords are never returned in any response.
 
 ### FR-4 File record management
-- FR-4.1 Create a file record (`name`, `detail`).
+- FR-4.1 Create a file record by uploading a file. The binary is stored on the
+  server under `/public/upload` (per the initial idea); `detail` holds the
+  resulting public URL path.
 - FR-4.2 List file records.
 - FR-4.3 Get one file record by id.
-- FR-4.4 Update a file record.
-- FR-4.5 Delete a file record.
+- FR-4.4 Update a file record's metadata (`name`).
+- FR-4.5 Delete a file record; the backing file on disk is removed too.
+- FR-4.6 Uploaded files are served back as static content (no auth) at their
+  URL path.
+
+### FR-5 Word management
+Traces to [word-idea.md](../ideas/word-idea.md).
+- FR-5.1 Create a word: `word` (required) + `explain` (optional) + up to three
+  `file` references — `imageId`, `soundId`, `readExplainId` (all optional).
+- FR-5.2 List words / get one by id.
+- FR-5.3 Update a word (full replace of the above fields).
+- FR-5.4 Delete a word. Referenced files are left in place; deleting a file
+  clears the reference (`ON DELETE SET NULL`).
+- FR-5.5 A provided file id that does not exist -> `400`.
+- FR-5.6 Admin console: a "Words" nav entry; list + routed create/edit pages;
+  each of image/sound/read_explain is a drag-and-drop / click upload box that
+  previews an image or shows the file name.
+
+### FR-6 Course & Chapter management
+Traces to [course-idea.md](../ideas/course-idea.md).
+- FR-6.1 CRUD `course` (`name` + optional cover `imageId`).
+- FR-6.2 CRUD `chapter` (`number`, `name`, required `courseId`, optional
+  `imageId`). A chapter belongs to exactly one course.
+- FR-6.3 A non-existent `courseId` / `imageId` -> `400`. Deleting a course that
+  still owns chapters -> `409`; deleting a chapter clears any `word.chapterId`
+  that pointed at it.
+- FR-6.4 `word` gains an optional `chapterId` linking it to a chapter.
+- FR-6.5 Admin console: "Courses" and "Chapters" nav entries; list + routed
+  create/edit pages; image upload box; the chapter form has a course select and
+  the word form gains an optional chapter select.
+- FR-6.6 `home` site (`/home`, port 3100, Japanese UI, M PLUS 1p font,
+  **no login**): reads the public `GET` endpoints. Routes: `/` library grid,
+  `/course/[id]` (course + chapters), `/chapter/[id]` (chapter + its words),
+  `/flashcard/[id]` (study a chapter's words as flip cards — front: picture +
+  name + sound; back: meaning + read-explain sound). See
+  [steering/home](../steering/home/requirement.md).
 
 ## 6. Data requirements
-Three tables are required: `admin`, `customer`, `file`. Column-level detail is in
+Six tables are required: `admin`, `customer`, `file`, `word`, `course`,
+`chapter`. Column-level detail is in
 [functional-design.md](./functional-design.md) and
 [glossary.md](./glossary.md).
 

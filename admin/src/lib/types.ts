@@ -62,6 +62,58 @@ export interface CreateFileInput {
 }
 export type UpdateFileInput = CreateFileInput;
 
+export interface Word {
+  id: number;
+  word: string;
+  explain: string | null;
+  imageId: number | null;
+  soundId: number | null;
+  readExplainId: number | null;
+  chapterId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWordInput {
+  word: string;
+  explain?: string | null;
+  imageId?: number | null;
+  soundId?: number | null;
+  readExplainId?: number | null;
+  chapterId?: number | null;
+}
+export type UpdateWordInput = CreateWordInput;
+
+export interface Course {
+  id: number;
+  name: string;
+  imageId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CreateCourseInput {
+  name: string;
+  imageId?: number | null;
+}
+export type UpdateCourseInput = CreateCourseInput;
+
+export interface Chapter {
+  id: number;
+  number: number;
+  name: string;
+  imageId: number | null;
+  courseId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CreateChapterInput {
+  number: number;
+  name: string;
+  imageId?: number | null;
+  courseId: number;
+}
+export type UpdateChapterInput = CreateChapterInput;
+
 /** Error body returned by the backend. */
 export interface ApiErrorBody {
   error: string;

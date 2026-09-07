@@ -160,3 +160,20 @@ Verification: `tsc --noEmit` clean, `next lint` clean, `vitest` 31/31,
 `next build` OK (7 routes). Playwright/Chromium drove login → dashboard →
 admin create → customer create with avatar upload → file create with rich text
 → customer edit, 0 console errors; screenshots confirm the new look.
+
+## Routed create/edit pages (2026-09-07)
+
+Per `admin-idea.md` → "## folder structure — use page `/id/edit` to edit, use
+page `/new` to create new". Admins and Customers moved off modals onto routes
+(Files stays the upload gallery; delete stays a confirm dialog).
+
+- New: `app/(app)/admins/new`, `app/(app)/admins/[id]/edit`,
+  `app/(app)/customers/new`, `app/(app)/customers/[id]/edit` (thin wrappers).
+- New: `components/AdminForm.tsx`, `components/CustomerForm.tsx` — own their
+  load-by-id, validate, submit, `router.push(list)` + `router.refresh()`.
+- List pages (`admins/page.tsx`, `customers/page.tsx`) are now table + delete
+  only; "New"/"Edit" are `<Link>`s. `Modal.tsx` is kept (ConfirmDialog uses it).
+- Verified: `tsc` clean, `next lint` clean, vitest 38/38, `next build` OK
+  (11 routes). Headless-Chrome/CDP drove `/admins`, `/admins/new`,
+  `/customers/new`, `/admins/[id]/edit` (prefilled), and a real create via the
+  new-admin form → redirect to `/admins`, row persisted — 0 console errors.

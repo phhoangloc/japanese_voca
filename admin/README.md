@@ -16,7 +16,7 @@ call to the backend.
 cd admin
 npm install
 cp .env.example .env.local        # then edit NEXT_PUBLIC_API_BASE_URL if needed
-npm run dev                       # http://localhost:4100
+npm run dev                       # http://localhost:3000
 ```
 
 `NEXT_PUBLIC_API_BASE_URL` is the backend origin **without** the `/api` suffix;
@@ -26,9 +26,9 @@ the client appends `/api/...` itself.
 
 | Command            | What it does                              |
 |--------------------|-------------------------------------------|
-| `npm run dev`      | Dev server on port 4100                   |
+| `npm run dev`      | Dev server on port 3000                   |
 | `npm run build`    | Production build                          |
-| `npm start`        | Serve the production build (port 4100)    |
+| `npm start`        | Serve the production build (port 3000)    |
 | `npm run lint`     | ESLint (`next lint`)                      |
 | `npm run typecheck`| `tsc --noEmit`                            |
 | `npm test`         | Vitest unit tests (`src/lib`)             |
@@ -73,7 +73,7 @@ string fits the `TEXT` column.
 
 With the backend up and one admin seeded:
 
-1. `npm run dev`, open `http://localhost:4100` → redirected to `/login`.
+1. `npm run dev`, open `http://localhost:3000` → redirected to `/login`.
 2. Sign in with the seeded admin → lands on `/dashboard` with stat cards.
 3. **Admins**: create, edit (blank password keeps it), delete. Duplicate
    username/email surfaces the backend `409` message. Deleting an admin that

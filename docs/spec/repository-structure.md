@@ -5,16 +5,13 @@
 user_managerment_pro/
 ├── CLAUDE.md
 ├── docs/
-│   ├── ideas/
-│   │   └── initital-idea.md
-│   └── spec/
-│       ├── product-requirements.md
-│       ├── functional-design.md
-│       ├── architecture.md
-│       ├── repository-structure.md
-│       ├── development-guidelines.md
-│       └── glossary.md
-└── backend/
+│   ├── ideas/            initital / admin / word / course / home idea files
+│   ├── spec/             (these six documents)
+│   └── steering/         per-feature requirement / structure / task sets
+├── backend/             Express + MySQL REST API (this document, §2)
+├── admin/               Next.js admin console (see docs/steering/admin)
+└── home/                Next.js "Thư Viện Sách" reader site, port 3100
+                         (see docs/steering/home) — reads courses/chapters
 ```
 
 ## 2. Backend
@@ -30,6 +27,8 @@ backend/
 ├── .prettierrc
 ├── db/
 │   └── schema.sql          # CREATE TABLE admin / file / customer
+├── public/
+│   └── upload/             # uploaded files on disk (git-ignored, keeps .gitkeep)
 └── src/
     ├── index.ts            # app entry: start listening
     ├── app.ts              # express app: middleware + route mounting + error handler (exported for tests)
@@ -38,22 +37,34 @@ backend/
     │   ├── auth.routes.ts
     │   ├── admin.routes.ts
     │   ├── customer.routes.ts
-    │   └── file.routes.ts
+    │   ├── file.routes.ts
+    │   ├── word.routes.ts
+    │   ├── course.routes.ts
+    │   └── chapter.routes.ts
     ├── controller/
     │   ├── auth.controller.ts
     │   ├── admin.controller.ts
     │   ├── customer.controller.ts
-    │   └── file.controller.ts
+    │   ├── file.controller.ts
+    │   ├── word.controller.ts
+    │   ├── course.controller.ts
+    │   └── chapter.controller.ts
     ├── services/
     │   ├── auth.service.ts
     │   ├── admin.service.ts
     │   ├── customer.service.ts
     │   ├── file.service.ts
+    │   ├── word.service.ts
+    │   ├── course.service.ts
+    │   ├── chapter.service.ts
     │   └── __tests__/       # unit tests, repository mocked
     ├── repository/
     │   ├── admin.repository.ts
     │   ├── customer.repository.ts
-    │   └── file.repository.ts
+    │   ├── file.repository.ts
+    │   ├── word.repository.ts
+    │   ├── course.repository.ts
+    │   └── chapter.repository.ts
     ├── middleware/          # Express middleware (own test folder)
     │   ├── auth.middleware.ts
     │   ├── error.middleware.ts
@@ -70,6 +81,7 @@ backend/
         ├── jwt.ts          # sign / verify helpers
         ├── password.ts     # bcrypt hash / compare
         ├── api-error.ts    # ApiError class + factories (badRequest, notFound, ...)
+        ├── upload.ts       # multer disk-storage config + upload dir / unlink helpers
         └── validate.ts     # tiny request-body validation helpers
 ```
 

@@ -50,6 +50,59 @@ describe('errorMiddleware', () => {
     expect(res.statusCode).toBe(409);
   });
 
+  it('maps an over-limit request body to 413', () => {
+    const res = mockRes();
+    const tooLarge = Object.assign(new Error('request entity too large'), {
+      type: 'entity.too.large',
+      status: 413,
+    });
+    errorMiddleware(tooLarge, req, res, next);
+    expect(res.statusCode).toBe(413);
+    expect(res.body).toMatchObject({ error: 'Payload too large' });
+  });
+
+  it('maps a multer file-size-limit error to 413', () => {
+    const res = mockRes();
+    const tooBig = Object.assign(new Error('File too large'), {
+      name: 'MulterError',
+      code: 'LIMIT_FILE_SIZE',
+    });
+    errorMiddleware(tooBig, req, res, next);
+    expect(res.statusCode).toBe(413);
+    expect(res.body).toMatchObject({ error: 'File too large (max 10 MB)' });
+  });
+
+  it('maps other multer errors to 400', () => {
+    const res = mockRes();
+    const badField = Object.assign(new Error('Unexpected field'), {
+      name: 'MulterError',
+      code: 'LIMIT_UNEXPECTED_FILE',
+    });
+    errorMiddleware(badField, req, res, next);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('maps a MySQL oversized-packet error to 413', () => {
+    const res = mockRes();
+    const packet = Object.assign(new Error('packet too big'), {
+      code: 'ER_NET_PACKET_TOO_LARGE',
+    });
+    errorMiddleware(packet, req, res, next);
+    expect(res.statusCode).toBe(413);
+    expect(res.body).toMatchObject({ error: 'Payload too large' });
+  });
+
+  it('maps a malformed JSON body to 400', () => {
+    const res = mockRes();
+    const badJson = Object.assign(new Error('Unexpected token'), {
+      type: 'entity.parse.failed',
+      status: 400,
+    });
+    errorMiddleware(badJson, req, res, next);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ error: 'Invalid JSON body' });
+  });
+
   it('falls back to 500 for an unknown error', () => {
     const res = mockRes();
     jest.spyOn(console, 'error').mockImplementation(() => undefined);

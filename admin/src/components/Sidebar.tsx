@@ -51,6 +51,58 @@ const MENU = [
     ),
   },
   {
+    href: "/words",
+    label: "Words",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      >
+        <path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7" />
+      </svg>
+    ),
+  },
+  {
+    href: "/courses",
+    label: "Courses",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 3.5A1.5 1.5 0 013.5 2H8v12H3.5A1.5 1.5 0 012 12.5v-9zM14 3.5A1.5 1.5 0 0012.5 2H8v12h4.5a1.5 1.5 0 001.5-1.5v-9z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/chapters",
+    label: "Chapters",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      >
+        <path d="M4 2.5h8a1 1 0 011 1v10l-2-1.4-2 1.4-2-1.4-2 1.4v-10a1 1 0 011-1z" />
+      </svg>
+    ),
+  },
+  {
     href: "/files",
     label: "Files",
     icon: (

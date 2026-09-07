@@ -29,6 +29,36 @@ export interface Customer {
   updatedAt: string;
 }
 
+export interface Word {
+  id: number;
+  word: string;
+  explain: string | null;
+  imageId: number | null;
+  soundId: number | null;
+  readExplainId: number | null;
+  chapterId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Course {
+  id: number;
+  name: string;
+  imageId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Chapter {
+  id: number;
+  number: number;
+  name: string;
+  imageId: number | null;
+  courseId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Same entities without the password field - the only shape sent to clients. */
 export type PublicAdmin = Omit<Admin, 'password'>;
 export type PublicCustomer = Omit<Customer, 'password'>;
@@ -55,3 +85,24 @@ export type UpdateCustomerInput = {
   avatarId?: number | null;
   adminId: number;
 };
+
+export type CreateWordInput = {
+  word: string;
+  explain?: string | null;
+  imageId?: number | null;
+  soundId?: number | null;
+  readExplainId?: number | null;
+  chapterId?: number | null;
+};
+export type UpdateWordInput = CreateWordInput;
+
+export type CreateCourseInput = { name: string; imageId?: number | null };
+export type UpdateCourseInput = CreateCourseInput;
+
+export type CreateChapterInput = {
+  number: number;
+  name: string;
+  imageId?: number | null;
+  courseId: number;
+};
+export type UpdateChapterInput = CreateChapterInput;

@@ -11,7 +11,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Projek — Admin",
+  title: "Admin",
   description: "Admin console for Customer Management Pro",
 };
 

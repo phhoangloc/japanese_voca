@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   validateAdmin,
+  validateChapter,
+  validateCourse,
   validateCustomer,
   validateFile,
+  validateWord,
 } from "../validation";
 
 describe("validateAdmin", () => {
@@ -77,5 +80,48 @@ describe("validateFile", () => {
   it("requires a name", () => {
     expect(validateFile({ name: "", detail: "" })).toHaveProperty("name");
     expect(validateFile({ name: "logo", detail: "" })).toEqual({});
+  });
+});
+
+describe("validateWord", () => {
+  it("requires the word", () => {
+    expect(validateWord({ word: "", explain: "" })).toHaveProperty("word");
+    expect(validateWord({ word: "   ", explain: "x" })).toHaveProperty("word");
+  });
+
+  it("passes with a word (explain optional)", () => {
+    expect(validateWord({ word: "ephemeral", explain: "" })).toEqual({});
+    expect(validateWord({ word: "ephemeral", explain: "short-lived" })).toEqual(
+      {},
+    );
+  });
+});
+
+describe("validateCourse", () => {
+  it("requires a name", () => {
+    expect(validateCourse({ name: "" })).toHaveProperty("name");
+    expect(validateCourse({ name: "Beginner" })).toEqual({});
+  });
+});
+
+describe("validateChapter", () => {
+  const base = { number: "1", name: "Greetings", courseId: "3" };
+
+  it("passes a complete form", () => {
+    expect(validateChapter(base)).toEqual({});
+  });
+
+  it("requires a non-negative integer number", () => {
+    expect(validateChapter({ ...base, number: "" })).toHaveProperty("number");
+    expect(validateChapter({ ...base, number: "-1" })).toHaveProperty("number");
+    expect(validateChapter({ ...base, number: "1.5" })).toHaveProperty("number");
+  });
+
+  it("requires name and a positive courseId", () => {
+    expect(validateChapter({ ...base, name: "" })).toHaveProperty("name");
+    expect(validateChapter({ ...base, courseId: "" })).toHaveProperty("courseId");
+    expect(validateChapter({ ...base, courseId: "0" })).toHaveProperty(
+      "courseId",
+    );
   });
 });

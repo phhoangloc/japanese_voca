@@ -71,9 +71,11 @@ Error shape from the API: `{ error: string, details?: Record<string,string> }`.
 
 ### FR-4 Admins management
 - FR-4.1 Table of admins: id, username, email, created at.
-- FR-4.2 "New admin" opens a modal form (`username`, `email`, `password`).
-- FR-4.3 Row "Edit" opens the same form (`password` optional — blank = unchanged).
-- FR-4.4 Row "Delete" asks for confirmation, then calls the API.
+- FR-4.2 "New admin" links to the page `/admins/new` (`username`, `email`,
+  `password`).
+- FR-4.3 Row "Edit" links to `/admins/[id]/edit` — the same form, prefilled
+  (`password` optional — blank = unchanged). On save it returns to `/admins`.
+- FR-4.4 Row "Delete" asks for confirmation (dialog), then calls the API.
 - FR-4.5 Field-level API validation errors (`details`) render under each field.
 - FR-4.6 `409` (duplicate username/email, or admin still owns customers) shows a
   readable message.
@@ -81,36 +83,41 @@ Error shape from the API: `{ error: string, details?: Record<string,string> }`.
 ### FR-5 Customers management
 - FR-5.1 Table of customers: id, username, email, point, owning admin, avatar
   thumbnail.
-- FR-5.2 "New customer" modal: `username`, `email`, `password`, `point`,
-  `adminId` (select of existing admins), `avatar` (image box).
-- FR-5.3 Edit: same form, `password` optional.
-- FR-5.4 Delete with confirmation.
+- FR-5.2 "New customer" links to `/customers/new`: `username`, `email`,
+  `password`, `point`, `adminId` (select of existing admins), `avatar`
+  (image box).
+- FR-5.3 Row "Edit" links to `/customers/[id]/edit` — same form, prefilled,
+  `password` optional. On save it returns to `/customers`.
+- FR-5.4 Delete with confirmation (dialog).
 - FR-5.5 The avatar image box (see FR-7) uploads an image; the app creates a
   `file` record to hold it and sets `avatarId` to that record.
 - FR-5.6 Avatar thumbnail in the table is read back from the linked `file`
   record.
 
 ### FR-6 Files management
-- FR-6.1 Table of file records: id, name, a preview of `detail`, created at.
-- FR-6.2 "New file" modal: `name` + `detail` entered with the rich text editor
-  (see FR-8).
-- FR-6.3 Edit / delete (with confirmation) as for the other resources.
+- FR-6.1 A gallery: uploaded files laid out as a horizontal strip. Images
+  preview inline; other files show their name. Topbar search filters by name.
+- FR-6.2 "New file" opens the OS file picker and uploads the chosen file(s)
+  immediately — no form. The binary is stored server-side under
+  `/public/upload` (see backend); the row's `detail` holds the URL path.
+- FR-6.3 Delete (with confirmation) per tile. No edit form.
 
 ### FR-7 Image upload box (component)
 - FR-7.1 Accepts a drop **and** a click that opens the OS file picker.
 - FR-7.2 Accepts image files only; shows a preview once chosen.
-- FR-7.3 Large images are downscaled client-side (max edge ~512 px) before use so
-  the encoded string stays within the backend `TEXT` column.
-- FR-7.4 Produces a data URL used as the file record payload.
-- FR-7.5 "Remove" clears the selection.
+- FR-7.3 Hands the chosen `File` to the parent, which uploads it to
+  `POST /api/files` on submit (backend caps the size at 10 MB).
+- FR-7.4 "Remove" clears the selection.
 
 ### FR-8 Rich text editor (component)
 - FR-8.1 Toolbar: H1, H2, H3, H4, H5, Bold, Italic, Underline, Link (URL),
   Image by URL, Image upload.
-- FR-8.2 "Image upload" inserts the (downscaled) image **at the cursor
-  position**.
-- FR-8.3 Produces an HTML string stored in the file record `detail` field.
-- FR-8.4 Renders existing `detail` HTML when editing.
+- FR-8.2 "Image upload" POSTs the file to `/api/files` and inserts an `<img>`
+  with the served URL **at the cursor position**.
+- FR-8.3 Produces an HTML string.
+- FR-8.4 Renders existing HTML when editing.
+- FR-8.5 (Currently unused — no screen mounts it since the Files page dropped
+  its form. Kept as a component per the idea.)
 
 ## 5. Out of scope
 

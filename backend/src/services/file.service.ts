@@ -1,5 +1,6 @@
 import { fileRepository } from '../repository/file.repository';
 import { ApiError } from '../ult/api-error';
+import { removeUploadedFile } from '../ult/upload';
 import { CreateFileInput, FileRecord, UpdateFileInput } from '../types/entities';
 
 export const fileService = {
@@ -34,7 +35,11 @@ export const fileService = {
   },
 
   async remove(id: number): Promise<void> {
-    const affected = await fileRepository.remove(id);
-    if (affected === 0) throw ApiError.notFound('File not found');
+    const existing = await fileRepository.findById(id);
+    if (!existing) throw ApiError.notFound('File not found');
+
+    await fileRepository.remove(id);
+    // Best-effort: drop the backing file from `/public/upload` too.
+    await removeUploadedFile(existing.detail);
   },
 };
