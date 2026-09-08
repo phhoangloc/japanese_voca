@@ -47,9 +47,20 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(14px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // Flashcard step transition: the card runs in from one side into place.
+        cardInNext: {
+          from: { opacity: "0", transform: "translateX(64px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        cardInPrev: {
+          from: { opacity: "0", transform: "translateX(-64px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
       },
       animation: {
         fadeUp: "fadeUp 0.4s ease",
+        cardInNext: "cardInNext 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
+        cardInPrev: "cardInPrev 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
       },
     },
   },

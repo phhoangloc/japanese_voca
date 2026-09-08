@@ -5,8 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Column, DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { Pagination } from "@/components/Pagination";
 import { matchesQuery, useSearch } from "@/components/SearchContext";
 import { useToast } from "@/components/Toast";
+import { usePagination } from "@/hooks/usePagination";
 import { useResource } from "@/hooks/useResource";
 import { ApiError } from "@/lib/api";
 import { api } from "@/lib/client";
@@ -116,6 +118,10 @@ export default function ChaptersPage() {
   const rows = items.filter((ch) =>
     matchesQuery(query, ch.id, ch.number, ch.name, courseName(ch.courseId)),
   );
+  const { page, setPage, pageRows, pageCount, pageSize, total } = usePagination(
+    rows,
+    { resetKey: query },
+  );
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -153,7 +159,7 @@ export default function ChaptersPage() {
 
       <DataTable
         columns={columns}
-        rows={rows}
+        rows={pageRows}
         rowKey={(ch) => ch.id}
         loading={loading}
         emptyMessage={
@@ -172,6 +178,14 @@ export default function ChaptersPage() {
             </button>
           </>
         )}
+      />
+
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        onPageChange={setPage}
+        totalItems={total}
+        pageSize={pageSize}
       />
 
       <ConfirmDialog

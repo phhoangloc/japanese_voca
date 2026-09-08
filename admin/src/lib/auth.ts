@@ -47,6 +47,21 @@ export function usernameFromToken(token: string | null): string | null {
   }
 }
 
+/** Decode the numeric `sub` (admin id) claim from a JWT without verifying. */
+export function adminIdFromToken(token: string | null): number | null {
+  if (!token) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const json = atobUrl(parts[1]);
+    const payload = JSON.parse(json) as { sub?: unknown };
+    const id = Number(payload.sub);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 function atobUrl(input: string): string {
   const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
   const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
@@ -87,6 +102,7 @@ export function useAuth() {
     token,
     isAuthenticated: !!token,
     username: usernameFromToken(token),
+    adminId: adminIdFromToken(token),
     login,
     logout,
   };

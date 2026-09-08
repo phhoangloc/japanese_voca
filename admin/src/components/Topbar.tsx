@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { initials } from "@/lib/format";
 import { useSearch } from "./SearchContext";
@@ -9,9 +12,29 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenu }: TopbarProps) {
-  const { username } = useAuth();
+  const { username, logout } = useAuth();
   const { query, setQuery } = useSearch();
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
   const name = username ?? "admin";
+
+  // Close the account menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (e: PointerEvent) => {
+      if (!accountRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   return (
     <header className="flex items-center gap-3.5">
@@ -79,14 +102,86 @@ export function Topbar({ onMenu }: TopbarProps) {
         </svg>
       </div>
 
-      <div className="flex items-center gap-2.5 rounded-xl bg-white py-1.5 pl-2 pr-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[oklch(0.7_0.1_40)] text-[13px] font-bold text-white">
-          {initials(name)}
-        </span>
-        <div className="hidden leading-tight sm:block">
-          <div className="text-[13.5px] font-bold text-ink">{name}</div>
-          <div className="text-[11.5px] text-ink-soft">Administrator</div>
-        </div>
+      <div className="relative" ref={accountRef}>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="flex items-center gap-2.5 rounded-xl bg-white py-1.5 pl-2 pr-3 text-left transition-colors hover:bg-line-faint"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Account menu"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[oklch(0.7_0.1_40)] text-[13px] font-bold text-white">
+            {initials(name)}
+          </span>
+          <div className="hidden leading-tight sm:block">
+            <div className="text-[13.5px] font-bold text-ink">{name}</div>
+            <div className="text-[11.5px] text-ink-soft">Administrator</div>
+          </div>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="oklch(0.5 0.01 150)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={menuOpen ? "rotate-180 transition-transform" : "transition-transform"}
+          >
+            <path d="M4 6l4 4 4-4" />
+          </svg>
+        </button>
+
+        {menuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 top-[calc(100%+8px)] z-40 w-52 overflow-hidden rounded-xl border border-line-soft bg-white py-1.5 shadow-lg"
+          >
+            <Link
+              href="/profile"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-line-faint"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+              >
+                <circle cx="8" cy="5.5" r="2.5" />
+                <path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5" strokeLinecap="round" />
+              </svg>
+              Edit profile
+            </Link>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                logout();
+                router.replace("/login");
+              }}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              >
+                <path d="M6 1.5H3a1 1 0 00-1 1v11a1 1 0 001 1h3M10.5 11l3-3-3-3M13 8H5.5" />
+              </svg>
+              Log out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

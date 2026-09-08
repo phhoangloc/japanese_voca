@@ -5,8 +5,10 @@ import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Column, DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { Pagination } from "@/components/Pagination";
 import { matchesQuery, useSearch } from "@/components/SearchContext";
 import { useToast } from "@/components/Toast";
+import { usePagination } from "@/hooks/usePagination";
 import { useResource } from "@/hooks/useResource";
 import { ApiError } from "@/lib/api";
 import { formatDate, htmlToPreview } from "@/lib/format";
@@ -80,6 +82,10 @@ export default function WordsPage() {
   const rows = items.filter((w) =>
     matchesQuery(query, w.id, w.word, htmlToPreview(w.explain, 200)),
   );
+  const { page, setPage, pageRows, pageCount, pageSize, total } = usePagination(
+    rows,
+    { resetKey: query },
+  );
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -101,7 +107,7 @@ export default function WordsPage() {
 
       <DataTable
         columns={columns}
-        rows={rows}
+        rows={pageRows}
         rowKey={(w) => w.id}
         loading={loading}
         emptyMessage={query ? "No words match your search." : "No words yet."}
@@ -118,6 +124,14 @@ export default function WordsPage() {
             </button>
           </>
         )}
+      />
+
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        onPageChange={setPage}
+        totalItems={total}
+        pageSize={pageSize}
       />
 
       <ConfirmDialog

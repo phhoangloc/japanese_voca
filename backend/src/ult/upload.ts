@@ -16,6 +16,7 @@ export const UPLOAD_URL_PREFIX = '/upload';
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const ALLOWED_EXT = new Set([
+  // images
   '.png',
   '.jpg',
   '.jpeg',
@@ -24,6 +25,14 @@ const ALLOWED_EXT = new Set([
   '.bmp',
   '.svg',
   '.avif',
+  // audio (word pronunciation / spoken explanation clips)
+  '.mp3',
+  '.wav',
+  '.m4a',
+  '.aac',
+  '.ogg',
+  '.opus',
+  '.webm',
 ]);
 
 const storage = multer.diskStorage({

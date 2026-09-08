@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Pagination } from "@/components/Pagination";
 import { SiteHeader } from "@/components/SiteHeader";
+import { usePagination } from "@/hooks/usePagination";
 import { ApiError } from "@/lib/api";
 import { coverPalette, hueFromId } from "@/lib/books";
 import { api } from "@/lib/client";
@@ -48,6 +50,11 @@ export function ChapterView({ chapterId }: { chapterId: number }) {
     };
   }, [chapterId]);
 
+  const { page, setPage, pageRows, pageCount, pageSize, total } = usePagination(
+    words,
+    { pageSize: 10, resetKey: chapterId },
+  );
+
   const p = chapter ? coverPalette(hueFromId(chapter.courseId)) : null;
 
   return (
@@ -64,7 +71,7 @@ export function ChapterView({ chapterId }: { chapterId: number }) {
       ) : loading || !chapter ? (
         <p className="mx-auto mt-24 text-sm text-ink-faint">読み込み中…</p>
       ) : (
-        <main className="mx-auto w-full max-w-[820px] animate-fadeUp px-8 pb-20 pt-14">
+        <main className="mx-auto w-full max-w-[1080px] animate-fadeUp px-8 pb-20 pt-14">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <span className="text-[13px] font-semibold text-ink-faint">
@@ -92,18 +99,18 @@ export function ChapterView({ chapterId }: { chapterId: number }) {
             <p className="text-sm text-ink-faint">単語はまだありません。</p>
           ) : (
             <ul className="m-0 flex list-none flex-col gap-2 p-0">
-              {words.map((w) => (
+              {pageRows.map((w) => (
                 <li
                   key={w.id}
-                  className="flex items-center gap-4 rounded-xl border border-line bg-white/60 px-4 py-3"
+                  className="flex flex-col gap-1.5 rounded-xl border border-line bg-white/60 px-4 py-3 min-[575px]:flex-row min-[575px]:items-center min-[575px]:gap-4"
                 >
-                  <span className="text-[16px] font-bold text-ink">
+                  <span className="break-words text-[16px] font-bold leading-tight text-ink min-[575px]:w-56 min-[575px]:shrink-0">
                     {w.word}
                   </span>
-                  <span className="truncate text-[14px] text-ink-soft">
+                  <span className="text-[14px] text-ink-soft min-[575px]:min-w-0 min-[575px]:flex-1 min-[575px]:truncate">
                     {w.explain ?? "—"}
                   </span>
-                  <span className="ml-auto flex gap-1.5 text-sm" aria-hidden>
+                  <span className="flex gap-1.5 text-sm min-[575px]:shrink-0" aria-hidden>
                     <span className={w.imageId ? "" : "opacity-20"}>🖼️</span>
                     <span className={w.soundId ? "" : "opacity-20"}>🔊</span>
                     <span className={w.readExplainId ? "" : "opacity-20"}>
@@ -113,6 +120,17 @@ export function ChapterView({ chapterId }: { chapterId: number }) {
                 </li>
               ))}
             </ul>
+          )}
+
+          {words.length > 0 && (
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              onPageChange={setPage}
+              totalItems={total}
+              pageSize={pageSize}
+              className="mt-5"
+            />
           )}
         </main>
       )}

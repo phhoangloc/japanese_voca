@@ -3,8 +3,10 @@
 import { useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PageHeader } from "@/components/PageHeader";
+import { Pagination } from "@/components/Pagination";
 import { matchesQuery, useSearch } from "@/components/SearchContext";
 import { useToast } from "@/components/Toast";
+import { usePagination } from "@/hooks/usePagination";
 import { useResource } from "@/hooks/useResource";
 import { ApiError } from "@/lib/api";
 import { api } from "@/lib/client";
@@ -56,7 +58,18 @@ export default function FilesPage() {
     }
   };
 
-  const rows = items.filter((f) => matchesQuery(query, f.id, f.name));
+  const rows = items
+    .filter((f) => matchesQuery(query, f.id, f.name))
+    // Newest first.
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() ||
+        b.id - a.id,
+    );
+  const { page, setPage, pageRows, pageCount, pageSize, total } = usePagination(
+    rows,
+    { pageSize: 24, resetKey: query },
+  );
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -100,46 +113,56 @@ export default function FilesPage() {
             : "No files yet. Use “New file” to upload one."}
         </p>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-3">
-          {rows.map((f) => {
-            const src = resolveFileUrl(f.detail);
-            return (
-              <figure
-                key={f.id}
-                className="group flex w-40 shrink-0 flex-col gap-2"
-              >
-                <div className="relative h-40 w-40 overflow-hidden rounded-xl border border-line bg-white">
-                  {src && isImageDetail(f.detail) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={src}
-                      alt={f.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs font-semibold text-ink-soft">
-                      {f.name}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setToDelete(f)}
-                    aria-label={`Delete ${f.name}`}
-                    className="absolute right-1.5 top-1.5 rounded-md bg-white/90 px-1.5 py-0.5 text-xs font-semibold text-red-600 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <figcaption
-                  className="truncate text-xs text-ink-soft"
-                  title={`${f.name} · ${formatDate(f.createdAt)}`}
+        <>
+          <div className="flex flex-wrap gap-4 pb-3">
+            {pageRows.map((f) => {
+              const src = resolveFileUrl(f.detail);
+              return (
+                <figure
+                  key={f.id}
+                  className="group flex w-40 shrink-0 flex-col gap-2"
                 >
-                  {f.name}
-                </figcaption>
-              </figure>
-            );
-          })}
-        </div>
+                  <div className="relative h-40 w-40 overflow-hidden rounded-xl border border-line bg-white">
+                    {src && isImageDetail(f.detail) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={src}
+                        alt={f.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center px-2 text-center text-xs font-semibold text-ink-soft">
+                        {f.name}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setToDelete(f)}
+                      aria-label={`Delete ${f.name}`}
+                      className="absolute right-1.5 top-1.5 rounded-md bg-white/90 px-1.5 py-0.5 text-xs font-semibold text-red-600 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <figcaption
+                    className="truncate text-xs text-ink-soft"
+                    title={`${f.name} · ${formatDate(f.createdAt)}`}
+                  >
+                    {f.name}
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onPageChange={setPage}
+            totalItems={total}
+            pageSize={pageSize}
+          />
+        </>
       )}
 
       <ConfirmDialog
