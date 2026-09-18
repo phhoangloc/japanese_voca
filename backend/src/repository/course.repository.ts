@@ -18,7 +18,7 @@ function mapRow(row: RowDataPacket): Course {
 export const courseRepository = {
   async findAll(): Promise<Course[]> {
     const [rows] = await pool.execute<RowDataPacket[]>(
-      `SELECT ${COLUMNS} FROM course ORDER BY id`,
+      `SELECT ${COLUMNS} FROM course ORDER BY id DESC`,
     );
     return rows.map(mapRow);
   },

@@ -28,7 +28,7 @@ interface ChapterWriteRow {
 export const chapterRepository = {
   async findAll(): Promise<Chapter[]> {
     const [rows] = await pool.execute<RowDataPacket[]>(
-      `SELECT ${COLUMNS} FROM chapter ORDER BY courseId, number, id`,
+      `SELECT ${COLUMNS} FROM chapter ORDER BY courseId DESC, number DESC, id DESC`,
     );
     return rows.map(mapRow);
   },
