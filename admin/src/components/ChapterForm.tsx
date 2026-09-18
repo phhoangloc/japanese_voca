@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Column, DataTable } from "@/components/DataTable";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Field, SelectField } from "@/components/Field";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,7 +14,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { ApiError } from "@/lib/api";
 import { api } from "@/lib/client";
 import { resolveFileUrl } from "@/lib/files";
-import { htmlToPreview } from "@/lib/format";
+import { formatDate, htmlToPreview } from "@/lib/format";
 import type {
   Chapter,
   Course,
@@ -58,9 +60,9 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
 
   const [words, setWords] = useState<Word[] | null>(null);
   useEffect(() => {
-    if (!isEdit) return;
     let alive = true;
     (async () => {
+      if (!isEdit) return;
       try {
         const all = await api.list<Word>("words");
         if (alive) setWords(all.filter((w) => w.chapterId === chapterId));
@@ -165,6 +167,67 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
   };
 
   const noCourses = !isEdit && courses.length === 0;
+
+  const [toDeleteWord, setToDeleteWord] = useState<Word | null>(null);
+  const confirmDeleteWord = async () => {
+    if (!toDeleteWord) return;
+    try {
+      await api.remove("words", toDeleteWord.id);
+      toast.success("Word deleted");
+      setWords((ws) => ws && ws.filter((w) => w.id !== toDeleteWord.id));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Delete failed");
+    } finally {
+      setToDeleteWord(null);
+    }
+  };
+
+  const wordColumns = useMemo<Column<Word>[]>(
+    () => [
+      { key: "id", header: "ID", render: (w) => w.id, className: "w-16" },
+      {
+        key: "word",
+        header: "Word",
+        render: (w) => <span className="font-semibold text-ink">{w.word}</span>,
+      },
+      {
+        key: "explain",
+        header: "Explain",
+        render: (w) => (
+          <span className="text-ink-soft">
+            {htmlToPreview(w.explain, 90) || "—"}
+          </span>
+        ),
+      },
+      {
+        key: "attachments",
+        header: "Files",
+        render: (w) => (
+          <span className="flex gap-1.5 text-base" aria-hidden>
+            <span className={w.imageId ? "" : "opacity-20"} title="Image">
+              🖼️
+            </span>
+            <span className={w.soundId ? "" : "opacity-20"} title="Sound">
+              🔊
+            </span>
+            <span
+              className={w.readExplainId ? "" : "opacity-20"}
+              title="Read explain"
+            >
+              🗣️
+            </span>
+          </span>
+        ),
+      },
+      {
+        key: "createdAt",
+        header: "Created",
+        render: (w) => formatDate(w.createdAt),
+      },
+    ],
+    [],
+  );
+
   const {
     page: wordPage,
     setPage: setWordPage,
@@ -258,59 +321,59 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
       )}
 
       {isEdit && !loading && !loadError && (
-        <div className="card p-5">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="flex flex-col gap-3.5">
+          <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-ink">
               Words in this chapter{words ? ` (${words.length})` : ""}
             </h2>
             <Link
               href={`/words/new?chapterId=${chapterId}`}
-              className="btn-secondary"
+              className="btn-primary"
             >
               + New word
             </Link>
           </div>
 
-          {words === null ? (
-            <p className="text-sm text-ink-soft">Loading…</p>
-          ) : words.length === 0 ? (
-            <p className="text-sm text-ink-soft">No words in this chapter yet.</p>
-          ) : (
-            <>
-              <ul className="divide-y divide-line">
-                {wordPageRows.map((w) => (
-                  <li
-                    key={w.id}
-                    className="flex items-center justify-between gap-4 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-ink">
-                        {w.word}
-                      </p>
-                      <p className="truncate text-sm text-ink-soft">
-                        {htmlToPreview(w.explain, 90) || "—"}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/words/${w.id}/edit`}
-                      className="btn-row shrink-0"
-                    >
-                      Edit
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <Pagination
-                page={wordPage}
-                pageCount={wordPageCount}
-                onPageChange={setWordPage}
-                totalItems={wordTotal}
-                pageSize={wordPageSize}
-              />
-            </>
+          <DataTable
+            columns={wordColumns}
+            rows={wordPageRows}
+            rowKey={(w) => w.id}
+            loading={words === null}
+            emptyMessage="No words in this chapter yet."
+            actions={(w) => (
+              <>
+                <Link href={`/words/${w.id}/edit`} className="btn-row">
+                  Edit
+                </Link>
+                <button
+                  className="btn-row text-red-600 hover:bg-red-50"
+                  onClick={() => setToDeleteWord(w)}
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          />
+
+          {words !== null && words.length > 0 && (
+            <Pagination
+              page={wordPage}
+              pageCount={wordPageCount}
+              onPageChange={setWordPage}
+              totalItems={wordTotal}
+              pageSize={wordPageSize}
+            />
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={toDeleteWord !== null}
+        title="Delete word"
+        message={`Delete "${toDeleteWord?.word}"? This cannot be undone. Its uploaded files are kept.`}
+        onCancel={() => setToDeleteWord(null)}
+        onConfirm={confirmDeleteWord}
+      />
     </div>
   );
 }

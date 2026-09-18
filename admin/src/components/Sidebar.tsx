@@ -34,23 +34,6 @@ const MENU = [
     ),
   },
   {
-    href: "/words",
-    label: "Words",
-    icon: (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      >
-        <path d="M2.5 3.5h11M2.5 8h11M2.5 12.5h7" />
-      </svg>
-    ),
-  },
-  {
     href: "/courses",
     label: "Courses",
     icon: (
