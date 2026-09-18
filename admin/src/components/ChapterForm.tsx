@@ -188,7 +188,7 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
           before creating chapters.
         </p>
       ) : (
-        <form onSubmit={submit} className="card max-w-3xl space-y-4 p-5">
+        <form onSubmit={submit} className="card space-y-4 p-5">
           <FileDropzone
             label="Image"
             accept="image/*"
@@ -248,7 +248,7 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
       )}
 
       {isEdit && !loading && !loadError && (
-        <div className="card max-w-3xl p-5">
+        <div className="card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-ink">
               Words in this chapter{words ? ` (${words.length})` : ""}
