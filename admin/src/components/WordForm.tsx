@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Field, SelectField } from "@/components/Field";
@@ -58,6 +58,8 @@ export function WordForm({ wordId }: { wordId?: number }) {
   const isEdit = wordId != null;
   const router = useRouter();
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const prefillChapterId = searchParams.get("chapterId");
 
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -97,6 +99,8 @@ export function WordForm({ wordId }: { wordId?: number }) {
             sound: slot(word.soundId),
             readExplain: slot(word.readExplainId),
           });
+        } else if (prefillChapterId) {
+          setDraft((d) => ({ ...d, chapterId: prefillChapterId }));
         }
       } catch (err) {
         if (alive) {
@@ -111,7 +115,7 @@ export function WordForm({ wordId }: { wordId?: number }) {
     return () => {
       alive = false;
     };
-  }, [wordId, isEdit]);
+  }, [wordId, isEdit, prefillChapterId]);
 
   const setSlot = (key: SlotKey, file: File | null) =>
     setDraft((d) => ({

@@ -10,11 +10,13 @@ import { useToast } from "@/components/Toast";
 import { ApiError } from "@/lib/api";
 import { api } from "@/lib/client";
 import { resolveFileUrl } from "@/lib/files";
+import { htmlToPreview } from "@/lib/format";
 import type {
   Chapter,
   Course,
   FieldErrors,
   FileRecord,
+  Word,
 } from "@/lib/types";
 import { validateChapter } from "@/lib/validation";
 
@@ -51,6 +53,23 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [words, setWords] = useState<Word[] | null>(null);
+  useEffect(() => {
+    if (!isEdit) return;
+    let alive = true;
+    (async () => {
+      try {
+        const all = await api.list<Word>("words");
+        if (alive) setWords(all.filter((w) => w.chapterId === chapterId));
+      } catch {
+        /* the section below just stays empty on failure */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [chapterId, isEdit]);
 
   useEffect(() => {
     let alive = true;
@@ -169,54 +188,55 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
           before creating chapters.
         </p>
       ) : (
-        <form
-          onSubmit={submit}
-          className="card grid max-w-2xl gap-4 p-5 sm:grid-cols-2"
-        >
-          <Field
-            label="Number"
-            type="number"
-            min={0}
-            value={draft.number}
-            error={errors.number}
-            onChange={(e) => setDraft({ ...draft, number: e.target.value })}
+        <form onSubmit={submit} className="card max-w-3xl space-y-4 p-5">
+          <FileDropzone
+            label="Image"
+            accept="image/*"
+            value={draft.imageUrl}
+            valueName={draft.imageName}
+            onChange={(file) =>
+              setDraft({
+                ...draft,
+                imageFile: file,
+                imageUrl: null,
+                imageDirty: true,
+              })
+            }
           />
-          <Field
-            label="Name"
-            value={draft.name}
-            error={errors.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          />
-          <SelectField
-            label="Course"
-            value={draft.courseId}
-            error={errors.courseId}
-            onChange={(e) => setDraft({ ...draft, courseId: e.target.value })}
-          >
-            <option value="">Select a course…</option>
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} (#{c.id})
-              </option>
-            ))}
-          </SelectField>
-          <div className="sm:col-span-2">
-            <FileDropzone
-              label="Image"
-              accept="image/*"
-              value={draft.imageUrl}
-              valueName={draft.imageName}
-              onChange={(file) =>
-                setDraft({
-                  ...draft,
-                  imageFile: file,
-                  imageUrl: null,
-                  imageDirty: true,
-                })
-              }
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field
+              label="Number"
+              type="number"
+              min={0}
+              value={draft.number}
+              error={errors.number}
+              onChange={(e) => setDraft({ ...draft, number: e.target.value })}
             />
+            <Field
+              label="Name"
+              value={draft.name}
+              error={errors.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            />
+            <SelectField
+              label="Course"
+              value={draft.courseId}
+              error={errors.courseId}
+              onChange={(e) =>
+                setDraft({ ...draft, courseId: e.target.value })
+              }
+            >
+              <option value="">Select a course…</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} (#{c.id})
+                </option>
+              ))}
+            </SelectField>
           </div>
-          <div className="flex justify-end gap-2.5 pt-2 sm:col-span-2">
+
+          <div className="flex justify-end gap-2.5 pt-2">
             <Link href="/chapters" className="btn-secondary">
               Cancel
             </Link>
@@ -225,6 +245,50 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
             </button>
           </div>
         </form>
+      )}
+
+      {isEdit && !loading && !loadError && (
+        <div className="card max-w-3xl p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-ink">
+              Words in this chapter{words ? ` (${words.length})` : ""}
+            </h2>
+            <Link
+              href={`/words/new?chapterId=${chapterId}`}
+              className="btn-secondary"
+            >
+              + New word
+            </Link>
+          </div>
+
+          {words === null ? (
+            <p className="text-sm text-ink-soft">Loading…</p>
+          ) : words.length === 0 ? (
+            <p className="text-sm text-ink-soft">No words in this chapter yet.</p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {words.map((w) => (
+                <li
+                  key={w.id}
+                  className="flex items-center justify-between gap-4 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-ink">{w.word}</p>
+                    <p className="truncate text-sm text-ink-soft">
+                      {htmlToPreview(w.explain, 90) || "—"}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/words/${w.id}/edit`}
+                    className="btn-row shrink-0"
+                  >
+                    Edit
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
