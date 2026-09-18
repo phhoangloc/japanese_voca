@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Field, SelectField } from "@/components/Field";
 import { PageHeader } from "@/components/PageHeader";
+import { Pagination } from "@/components/Pagination";
 import { useToast } from "@/components/Toast";
+import { usePagination } from "@/hooks/usePagination";
 import { ApiError } from "@/lib/api";
 import { api } from "@/lib/client";
 import { resolveFileUrl } from "@/lib/files";
@@ -163,6 +165,14 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
   };
 
   const noCourses = !isEdit && courses.length === 0;
+  const {
+    page: wordPage,
+    setPage: setWordPage,
+    pageRows: wordPageRows,
+    pageCount: wordPageCount,
+    pageSize: wordPageSize,
+    total: wordTotal,
+  } = usePagination(words ?? []);
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -266,27 +276,38 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
           ) : words.length === 0 ? (
             <p className="text-sm text-ink-soft">No words in this chapter yet.</p>
           ) : (
-            <ul className="divide-y divide-line">
-              {words.map((w) => (
-                <li
-                  key={w.id}
-                  className="flex items-center justify-between gap-4 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-ink">{w.word}</p>
-                    <p className="truncate text-sm text-ink-soft">
-                      {htmlToPreview(w.explain, 90) || "—"}
-                    </p>
-                  </div>
-                  <Link
-                    href={`/words/${w.id}/edit`}
-                    className="btn-row shrink-0"
+            <>
+              <ul className="divide-y divide-line">
+                {wordPageRows.map((w) => (
+                  <li
+                    key={w.id}
+                    className="flex items-center justify-between gap-4 py-2.5"
                   >
-                    Edit
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-ink">
+                        {w.word}
+                      </p>
+                      <p className="truncate text-sm text-ink-soft">
+                        {htmlToPreview(w.explain, 90) || "—"}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/words/${w.id}/edit`}
+                      className="btn-row shrink-0"
+                    >
+                      Edit
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Pagination
+                page={wordPage}
+                pageCount={wordPageCount}
+                onPageChange={setWordPage}
+                totalItems={wordTotal}
+                pageSize={wordPageSize}
+              />
+            </>
           )}
         </div>
       )}
