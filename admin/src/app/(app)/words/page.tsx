@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Column, DataTable } from "@/components/DataTable";
+import { SelectField } from "@/components/Field";
 import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { matchesQuery, useSearch } from "@/components/SearchContext";
@@ -11,13 +12,52 @@ import { useToast } from "@/components/Toast";
 import { usePagination } from "@/hooks/usePagination";
 import { useResource } from "@/hooks/useResource";
 import { ApiError } from "@/lib/api";
+import { api } from "@/lib/client";
 import { formatDate, htmlToPreview } from "@/lib/format";
-import type { Word } from "@/lib/types";
+import type { Chapter, Course, Word } from "@/lib/types";
 
 export default function WordsPage() {
   const { items, loading, error, remove } = useResource<Word>("words");
   const toast = useToast();
   const { query } = useSearch();
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [c, ch] = await Promise.all([
+          api.list<Course>("courses"),
+          api.list<Chapter>("chapters"),
+        ]);
+        if (!alive) return;
+        setCourses(c);
+        setChapters(ch);
+      } catch {
+        /* table surfaces load errors */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const [courseFilter, setCourseFilter] = useState("");
+  const [chapterFilter, setChapterFilter] = useState("");
+
+  const chapterOptions = courseFilter
+    ? chapters.filter((ch) => String(ch.courseId) === courseFilter)
+    : chapters;
+
+  const chapterById = (id: number | null) =>
+    id == null ? null : (chapters.find((ch) => ch.id === id) ?? null);
+  const courseName = (id: number) =>
+    courses.find((c) => c.id === id)?.name ?? `#${id}`;
+  const chapterLabel = (id: number | null) => {
+    const ch = chapterById(id);
+    return ch ? `#${ch.number} ${ch.name}` : "—";
+  };
 
   const [toDelete, setToDelete] = useState<Word | null>(null);
 
@@ -51,6 +91,18 @@ export default function WordsPage() {
         ),
       },
       {
+        key: "chapter",
+        header: "Chapter",
+        render: (w) => {
+          const ch = chapterById(w.chapterId);
+          return (
+            <span className="text-ink-soft">
+              {ch ? `${chapterLabel(w.chapterId)} · ${courseName(ch.courseId)}` : "—"}
+            </span>
+          );
+        },
+      },
+      {
         key: "attachments",
         header: "Files",
         render: (w) => (
@@ -76,16 +128,37 @@ export default function WordsPage() {
         render: (w) => formatDate(w.createdAt),
       },
     ],
-    [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chapters, courses],
   );
 
-  const rows = items.filter((w) =>
-    matchesQuery(query, w.id, w.word, htmlToPreview(w.explain, 200)),
-  );
+  const rows = items
+    .filter((w) => {
+      if (chapterFilter) {
+        if (chapterFilter === "none") return w.chapterId == null;
+        return w.chapterId === Number(chapterFilter);
+      }
+      if (courseFilter) {
+        const ch = chapterById(w.chapterId);
+        return ch != null && String(ch.courseId) === courseFilter;
+      }
+      return true;
+    })
+    .filter((w) =>
+      matchesQuery(
+        query,
+        w.id,
+        w.word,
+        htmlToPreview(w.explain, 200),
+        chapterLabel(w.chapterId),
+      ),
+    );
   const { page, setPage, pageRows, pageCount, pageSize, total } = usePagination(
     rows,
-    { resetKey: query },
+    { resetKey: `${query}|${courseFilter}|${chapterFilter}` },
   );
+
+  const filtered = query !== "" || courseFilter !== "" || chapterFilter !== "";
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -105,12 +178,43 @@ export default function WordsPage() {
         </p>
       )}
 
+      <div className="grid gap-3 sm:grid-cols-2 sm:max-w-xl">
+        <SelectField
+          label="Course"
+          value={courseFilter}
+          onChange={(e) => {
+            setCourseFilter(e.target.value);
+            setChapterFilter("");
+          }}
+        >
+          <option value="">All courses</option>
+          {courses.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField
+          label="Chapter"
+          value={chapterFilter}
+          onChange={(e) => setChapterFilter(e.target.value)}
+        >
+          <option value="">All chapters</option>
+          <option value="none">— no chapter —</option>
+          {chapterOptions.map((ch) => (
+            <option key={ch.id} value={ch.id}>
+              #{ch.number} {ch.name}
+            </option>
+          ))}
+        </SelectField>
+      </div>
+
       <DataTable
         columns={columns}
         rows={pageRows}
         rowKey={(w) => w.id}
         loading={loading}
-        emptyMessage={query ? "No words match your search." : "No words yet."}
+        emptyMessage={filtered ? "No words match your filters." : "No words yet."}
         actions={(w) => (
           <>
             <Link href={`/words/${w.id}/edit`} className="btn-row">
