@@ -9,12 +9,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { matchesQuery, useSearch } from "@/components/SearchContext";
 import { useToast } from "@/components/Toast";
+import { WordFilesCell } from "@/components/WordFilesCell";
 import { usePagination } from "@/hooks/usePagination";
 import { useResource } from "@/hooks/useResource";
 import { ApiError } from "@/lib/api";
 import { api } from "@/lib/client";
 import { formatDate, htmlToPreview } from "@/lib/format";
-import type { Chapter, Course, Word } from "@/lib/types";
+import type { Chapter, Course, FileRecord, Word } from "@/lib/types";
 
 export default function WordsPage() {
   const { items, loading, error, remove } = useResource<Word>("words");
@@ -23,17 +24,20 @@ export default function WordsPage() {
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [files, setFiles] = useState<FileRecord[]>([]);
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [c, ch] = await Promise.all([
+        const [c, ch, f] = await Promise.all([
           api.list<Course>("courses"),
           api.list<Chapter>("chapters"),
+          api.list<FileRecord>("files"),
         ]);
         if (!alive) return;
         setCourses(c);
         setChapters(ch);
+        setFiles(f);
       } catch {
         /* table surfaces load errors */
       }
@@ -105,22 +109,7 @@ export default function WordsPage() {
       {
         key: "attachments",
         header: "Files",
-        render: (w) => (
-          <span className="flex gap-1.5 text-base" aria-hidden>
-            <span className={w.imageId ? "" : "opacity-20"} title="Image">
-              🖼️
-            </span>
-            <span className={w.soundId ? "" : "opacity-20"} title="Sound">
-              🔊
-            </span>
-            <span
-              className={w.readExplainId ? "" : "opacity-20"}
-              title="Read explain"
-            >
-              🗣️
-            </span>
-          </span>
-        ),
+        render: (w) => <WordFilesCell word={w} files={files} />,
       },
       {
         key: "createdAt",
@@ -129,7 +118,7 @@ export default function WordsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chapters, courses],
+    [chapters, courses, files],
   );
 
   const rows = items

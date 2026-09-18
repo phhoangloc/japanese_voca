@@ -10,6 +10,7 @@ import { Field, SelectField } from "@/components/Field";
 import { PageHeader } from "@/components/PageHeader";
 import { Pagination } from "@/components/Pagination";
 import { useToast } from "@/components/Toast";
+import { WordFilesCell } from "@/components/WordFilesCell";
 import { usePagination } from "@/hooks/usePagination";
 import { ApiError } from "@/lib/api";
 import { api } from "@/lib/client";
@@ -52,6 +53,7 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
   const toast = useToast();
 
   const [courses, setCourses] = useState<Course[]>([]);
+  const [files, setFiles] = useState<FileRecord[]>([]);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(true);
@@ -79,18 +81,19 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
     let alive = true;
     (async () => {
       try {
-        const [courseList, files, chapter] = await Promise.all([
+        const [courseList, fileList, chapter] = await Promise.all([
           api.list<Course>("courses"),
           api.list<FileRecord>("files"),
           isEdit ? api.get<Chapter>("chapters", chapterId) : null,
         ]);
         if (!alive) return;
         setCourses(courseList);
+        setFiles(fileList);
         if (chapter) {
           const f =
             chapter.imageId == null
               ? null
-              : files.find((x) => x.id === chapter.imageId) ?? null;
+              : fileList.find((x) => x.id === chapter.imageId) ?? null;
           setDraft({
             number: String(chapter.number),
             name: chapter.name,
@@ -202,22 +205,7 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
       {
         key: "attachments",
         header: "Files",
-        render: (w) => (
-          <span className="flex gap-1.5 text-base" aria-hidden>
-            <span className={w.imageId ? "" : "opacity-20"} title="Image">
-              🖼️
-            </span>
-            <span className={w.soundId ? "" : "opacity-20"} title="Sound">
-              🔊
-            </span>
-            <span
-              className={w.readExplainId ? "" : "opacity-20"}
-              title="Read explain"
-            >
-              🗣️
-            </span>
-          </span>
-        ),
+        render: (w) => <WordFilesCell word={w} files={files} />,
       },
       {
         key: "createdAt",
@@ -225,7 +213,7 @@ export function ChapterForm({ chapterId }: { chapterId?: number }) {
         render: (w) => formatDate(w.createdAt),
       },
     ],
-    [],
+    [files],
   );
 
   const {
